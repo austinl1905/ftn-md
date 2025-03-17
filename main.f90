@@ -1,25 +1,25 @@
 PROGRAM MAIN
+    USE PARAMETERS
+    USE MD
     IMPLICIT NONE
-    INTEGER :: I, J
-    REAL :: COORDINATES(50, 3)
-    REAL :: RAND, LBOUND, UBOUND
+    REAL, DIMENSION(N, D) :: R, V ! POSITION AND VELOCITY VECTORS
+    INTEGER :: I
 
-    LBOUND = -50.000
-    UBOUND = 50.000
+    CALL RANDOM_NUMBER(R)
+    CALL RANDOM_NUMBER(V)
 
-    CALL RANDOM_NUMBER(COORDINATES)
+    R = R * 100
+    V = (V * 200) - 100
 
-    PRINT *, COORDINATES
-
-    !IF (UBOUND.GT.LBOUND) THEN
-        !DO I = 1, SIZE(COORDINATES, DIM = 2)
-            !DO J = 1, SIZE(COORDINATES, DIM = 1)
-                
-            !END DO
-        !END DO
-    !END IF
+    PRINT *, "POSITIONS:"
+    PRINT *, R
+    PRINT *, "VELOCITIES:"
+    PRINT *, V
     
-    
-
+    DO I = 0, 100
+        PRINT '(A, F10.6)', "POSITION AT T = ", DT * I
+        PRINT *, R
+        R = UPDATE(R, V, DT)
+    END DO
 
 END PROGRAM MAIN
