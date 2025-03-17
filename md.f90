@@ -1,0 +1,18 @@
+MODULE MD
+    USE PARAMETERS
+    IMPLICIT NONE
+
+    CONTAINS
+
+    FUNCTION UPDATE(R, V, DT) RESULT(NEWR)
+        REAL, DIMENSION(N, D), INTENT(IN) :: R, V
+        REAL, INTENT(IN) :: DT
+        REAL, DIMENSION(N, D):: NEWR
+        NEWR = R + V * DT
+        IF (BC) THEN
+            NEWR = MODULO(R + V * DT, L)
+        END IF
+        RETURN
+    END FUNCTION
+
+END MODULE MD
