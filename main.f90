@@ -1,0 +1,25 @@
+PROGRAM MAIN
+    IMPLICIT NONE
+    INTEGER :: I, J
+    REAL :: COORDINATES(50, 3)
+    REAL :: RAND, LBOUND, UBOUND
+
+    LBOUND = -50.000
+    UBOUND = 50.000
+
+    CALL RANDOM_NUMBER(COORDINATES)
+
+    PRINT *, COORDINATES
+
+    !IF (UBOUND.GT.LBOUND) THEN
+        !DO I = 1, SIZE(COORDINATES, DIM = 2)
+            !DO J = 1, SIZE(COORDINATES, DIM = 1)
+                
+            !END DO
+        !END DO
+    !END IF
+    
+    
+
+
+END PROGRAM MAIN
