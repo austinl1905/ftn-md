@@ -19,7 +19,9 @@ PROGRAM MAIN
     DO I = 0, 100
         PRINT '(A, F10.6)', "POSITION AT T = ", DT * I
         PRINT *, R
-        R = UPDATE(R, V, DT)
+        PRINT '(A, F10.6)', "VELOCITY AT T = ", DT * I
+        PRINT *, V
+        R = UPDATE(R, V)
     END DO
 
 END PROGRAM MAIN
