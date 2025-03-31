@@ -4,17 +4,16 @@ MODULE MD
 
     CONTAINS
 
-    FUNCTION UPDATE(R, V) RESULT(NEWR)
-        REAL, DIMENSION(N, D), INTENT(IN) :: R, V
-        REAL, DIMENSION(N, D):: NEWR
-        NEWR = R + V * DT
+    SUBROUTINE UPDATE(R, V)
+        REAL, DIMENSION(N, D) :: R, V
+        R = R + V * DT
         IF (BC) THEN
-            NEWR = MODULO(R + V * DT, L)
+            R = MODULO(R + V * DT, L)
         ELSE 
             CALL REFLECT(R, V)
         END IF
         RETURN
-    END FUNCTION
+    END
 
     SUBROUTINE REFLECT(R, V)
         REAL, DIMENSION(N, D) :: R, V
