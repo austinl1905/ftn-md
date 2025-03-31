@@ -8,7 +8,7 @@ PROGRAM MAIN
     CALL RANDOM_NUMBER(R)
     CALL RANDOM_NUMBER(V)
 
-    R = R * 100
+    R = R * L
     V = (V * 200) - 100
 
     PRINT *, "POSITIONS:"
@@ -21,6 +21,7 @@ PROGRAM MAIN
         PRINT *, R
         PRINT '(A, F10.6)', "VELOCITY AT T = ", DT * I
         PRINT *, V
+        CALL DUMP(R, DT * I, I)
         CALL UPDATE(R, V)
     END DO
 
