@@ -4,17 +4,17 @@ MODULE MD
 
     CONTAINS
 
-    FUNCTION UPDATE(R, V) RESULT(NEWR)
-        REAL, DIMENSION(N, D), INTENT(IN) :: R, V
+    SUBROUTINE UPDATE(R, V)
+        REAL, DIMENSION(N, D) :: R, V
         REAL, DIMENSION(N, D):: NEWR
-        NEWR = R + V * DT
-        IF (BC) THEN
-            NEWR = MODULO(R + V * DT, L)
-        ELSE 
-            CALL REFLECT(R, V)
+        R = R + V * DT
+        IF (BC) THEN ! PERIODIC BOUNDARY CONDITIONS
+            R = MODULO(R + V * DT, L)
+        ELSE
+            CALL REFLECT(R, V) ! USE REFLECTING BOUNDARY CONDITIONS
         END IF
         RETURN
-    END FUNCTION
+    END
 
     SUBROUTINE REFLECT(R, V)
         REAL, DIMENSION(N, D) :: R, V
@@ -23,11 +23,11 @@ MODULE MD
                 DO ROW = 0, SIZE(R, DIM = 1)
                     IF (R(ROW, COL).LT.0) THEN 
                         V(ROW,COL) = -V(ROW, COL)
-                        R(ROW, COL) = -R(ROW, COL)
+                        R(ROW, COL) = -R(ROW, COL) ! REFLECT POSITION ABOUT 0
                     END IF
-                    IF (R(ROW, COL).GT.100) THEN
+                    IF (R(ROW, COL).GT.L) THEN
                         V(ROW, COL) = -V(ROW, COL)
-                        R(ROW, COL) = (2.0 * 100) - R(ROW, COL)
+                        R(ROW, COL) = (2.0 * L) - R(ROW, COL) ! REFLECT POSITION ABOUT L
                     END IF
                 END DO
             END DO
