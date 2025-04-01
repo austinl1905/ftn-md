@@ -21,7 +21,17 @@ PROGRAM MAIN
         PRINT *, R
         PRINT '(A, F10.6)', "VELOCITY AT T = ", DT * I
         PRINT *, V
-        R = UPDATE(R, V)
+        CALL UPDATE(R, V)
     END DO
+
+    CONTAINS
+        SUBROUTINE DUMP(R, T)
+            CHARACTER(LEN=20) :: FNAME
+            REAL, DIMENSION(N, D) :: R
+            REAL :: T
+
+
+        RETURN
+        END
 
 END PROGRAM MAIN
