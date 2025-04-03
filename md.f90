@@ -4,10 +4,26 @@ MODULE MD
 
     CONTAINS
 
+    FUNCTION LJPOT(R, I) RES(LJP)
+        REAL, DIMENSION(N, D) :: R
+        REAL, DIMENSION(N - 1, D) :: MR
+        INTEGER :: ROW, NEW_ROW
+
+        DO ROW = 1, N
+            IF (ROW = I) THEN ! LENNARD JONES WORKS UNDER THE CONDITION I /= J
+                CYCLE
+            END IF
+            MR(NEW_ROW, :) = A(ROW, :)
+            NEW_ROW = NEW_ROW + 1
+        END DO
+
+    RETURN
+    END
+
     SUBROUTINE UPDATE(R, V)
         REAL, DIMENSION(N, D) :: R, V
         R = R + V * DT
-        IF (BC) THEN
+        IF (BC.EQ.1) THEN
             R = MODULO(R + V * DT, L)
         ELSE 
             CALL REFLECT(R, V)
