@@ -7,7 +7,7 @@ MODULE MD
     SUBROUTINE UPDATE(R, V)
         REAL, DIMENSION(N, D) :: R, V
         R = R + V * DT
-        IF (BC) THEN
+        IF (BC.EQ.1) THEN
             R = MODULO(R + V * DT, L)
         ELSE 
             CALL REFLECT(R, V)
@@ -53,9 +53,9 @@ MODULE MD
         WRITE(1, '(I10)') N
         WRITE(1, *) "ITEM: BOX CONDITION"
 
-        IF (BC) THEN 
+        IF (BC.EQ.1) THEN 
             WRITE(1, *) "PERIODIC"
-        ELSE 
+        ELSE IF (BC.EQ.0) THEN
             WRITE(1, *) "REFLECTIVE"
         END IF
 
@@ -69,5 +69,23 @@ MODULE MD
         END DO
 
         CLOSE(1)
+    END
+
+    FUNCTION LJPOT(R, I) RESULT(LJP)
+        REAL, DIMENSION(N, D) :: R, LJP, DR ! POSITION, POTENTIAL ENERGY, DISTANCE FROM ITH ELEMENT (FOR EACH DIMENSION AND ATOM)
+        REAL, DIMENSION(N - 1, D) :: MR
+        INTEGER :: ROW, NEW_ROW, I
+
+        DR = R - R(I)
+
+        DO ROW = 1, N 
+            IF (ROW.EQ.I) THEN ! DON'T CALCULATE POTENTIAL FOR ITH ATOM
+                CYCLE
+            END IF
+            MR(NEW_ROW, :) = R(ROW, :)
+            NEW_ROW = NEW_ROW + 1
+        END DO
+
+    RETURN
     END
 END MODULE
