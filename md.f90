@@ -72,19 +72,25 @@ MODULE MD
     END
 
     FUNCTION LJPOT(R, I) RESULT(LJP)
-        REAL, DIMENSION(N, D) :: R, LJP, DR ! POSITION, POTENTIAL ENERGY, DISTANCE FROM ITH ELEMENT (FOR EACH DIMENSION AND ATOM)
-        REAL, DIMENSION(N - 1, D) :: MR
+        REAL, DIMENSION(N, D) :: R, DR ! POSITION, POTENTIAL ENERGY, DISTANCE VECTOR (FOR EACH DIMENSION AND ATOM)
+        REAL, DIMENSION(N - 1, D) :: MDR, LJP
         INTEGER :: ROW, NEW_ROW, I
 
-        DR = R - R(I)
+        NEW_ROW = 1
+
+        DO ROW = 1, N ! CALCULATE COMPONENT WISE DISTANCE VECTORS
+            DR(ROW, :) = R(ROW, :) - R(1, :)
+        END DO
 
         DO ROW = 1, N 
             IF (ROW.EQ.I) THEN ! DON'T CALCULATE POTENTIAL FOR ITH ATOM
                 CYCLE
             END IF
-            MR(NEW_ROW, :) = R(ROW, :)
+            MDR(NEW_ROW, :) = DR(ROW, :)
             NEW_ROW = NEW_ROW + 1
         END DO
+
+        LJP = MDR
 
     RETURN
     END
