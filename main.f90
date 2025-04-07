@@ -3,7 +3,8 @@ PROGRAM MAIN
     USE MD
     IMPLICIT NONE
     REAL, DIMENSION(N, D) :: R, V ! POSITION AND VELOCITY VECTORS
-    INTEGER :: I
+    REAL, DIMENSION(N - 1, D) :: TEMP
+    INTEGER :: I, J
 
     CALL RANDOM_NUMBER(R)
     CALL RANDOM_NUMBER(V)
@@ -18,14 +19,15 @@ PROGRAM MAIN
     
     DO I = 0, 100
         PRINT '(A, F10.6)', "POSITION AT T = ", DT * I
-        PRINT *, R
+        DO J = 1, N
+            PRINT *, "N = ", J, R(J, :)
+        END DO
         PRINT '(A, F10.6)', "VELOCITY AT T = ", DT * I
-        PRINT *, V
+        DO J = 1, N
+            PRINT *, "N = ", J, V(J, :)
+        END DO
         CALL DUMP(R, DT * I, I)
         CALL UPDATE(R, V)
     END DO
-
-    PRINT *, "DISTANCE FROM PARTICLE 1:"
-    PRINT *, LJPOT(R, 1)
 
 END PROGRAM MAIN
