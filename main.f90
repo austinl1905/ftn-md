@@ -21,10 +21,6 @@ PROGRAM MAIN
         DO J = 1, N
             PRINT *, "N = ", J, V(J, :)
         END DO
-        PRINT '(A, F10.6)', "POTENTIAL ENERGIES AT T = ", DT * I
-        DO J = 1, N
-            PRINT *, "N = ", J, LJPOT(R, J)
-        END DO
         CALL DUMP(R, DT * I, I)
         CALL UPDATE(R, V)
     END DO
