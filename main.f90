@@ -21,17 +21,10 @@ PROGRAM MAIN
         DO J = 1, N
             PRINT *, "N = ", J, V(J, :)
         END DO
-        IF (I.EQ.100) THEN
-            CYCLE
-        ELSE 
-            CALL DUMP(R, DT * I, I)
-            CALL UPDATE(R, V)
-        END IF
+        CALL DUMP(R, DT * I, I)
+        CALL UPDATE(R, V)
     END DO
 
-    DO I = 1, N
-        PRINT *, LJPOT(R, I)
-    END DO
 
     
 
