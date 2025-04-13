@@ -50,35 +50,18 @@ MODULE MD
         CHARACTER(LEN = 20) :: FILENAME
         REAL, DIMENSION(N, D) :: R
         REAL :: T
-        INTEGER :: I, J, K
+        INTEGER :: I, J
 
-        WRITE(FILENAME, '(A, I0, A)') 'dump/data', I, '.txt'
+        WRITE(FILENAME, '(A, I0, A)') 'dump/data', I, '.xyz'
 
-        OPEN(1, FILE=FILENAME, STATUS = 'new')
+        OPEN(1, FILE=FILENAME, STATUS = 'REPLACE')
 
-        WRITE(1, *) "ITEM: STEP"
-        WRITE(1, '(I10)') I
-        WRITE(1, *) "ITEM: DT"
-        WRITE(1, '(F5.2)') DT
-        WRITE(1, *) "ITEM: TIME"
-        WRITE(1, '(F5.2)') T
-        WRITE(1, *) "ITEM: N ATOMS"
-        WRITE(1, '(I10)') N
-        WRITE(1, *) "ITEM: BOX CONDITION"
+        WRITE(1, '(I0)') N
 
-        IF (BC.EQ.1) THEN 
-            WRITE(1, *) "PERIODIC"
-        ELSE IF (BC.EQ.0) THEN
-            WRITE(1, *) "REFLECTIVE"
-        END IF
-
-        WRITE(1, *) "ITEM: BOX BOUNDS (CUBE)"
-        WRITE(1, '(F5.3, A, F7.3)') 0.00, " ", L
-
-        WRITE(1, *) "ITEM: X Y Z"
+        WRITE(1, '(A, F8.3, A, I5)') 'TIME: ', T, ', STEP: ', I
         
         DO J = 1, N
-            WRITE(1, '(F10.6, F10.6, F10.6)') R(J, 1), R(J, 2), R(J, 3)
+            WRITE(1, '(A1, 3F12.6)') 'H', R(J,1), R(J,2), R(J,3)
         END DO
 
         CLOSE(1)
