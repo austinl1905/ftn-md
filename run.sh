@@ -6,7 +6,16 @@ rm -rf dump/*
 if test -f trajectory.xyz; then
     rm trajectory.xyz
 fi
-for i in dump/*.xyz
-    do cat $i >> trajectory.xyz
+for file in $(awk 'FNR==2 {print $NF, FILENAME}' dump/*.xyz | sort -n | awk '{print $2}')
+    do
+        cat "$file" >> trajectory.xyz
+done
+for file in $(awk 'FNR==2 {print $NF, FILENAME}' dump/vel*.txt | sort -n | awk '{print $2}')
+do
+    cat "$file" >> vels.txt
+done
+for file in $(awk 'FNR==2 {print $NF, FILENAME}' dump/acc*.txt | sort -n | awk '{print $2}')
+do
+    cat "$file" >> accs.txt
 done
 echo TRAJECTORY FILE SUCCESSFULLY CREATED

@@ -20,7 +20,7 @@ MODULE MD
         INTEGER :: I
 
         DO I = 1, N
-            F(I, :) = -DLJPOT(R, I)
+            F(I, :) = DLJPOT(R, I)
         END DO
 
         A = F / M
@@ -31,8 +31,8 @@ MODULE MD
     SUBROUTINE REFLECT(R, V)
         REAL, DIMENSION(N, D) :: R, V
         INTEGER :: COL, ROW
-            DO COL = 0, SIZE(R, DIM = 2)
-                DO ROW = 0, SIZE(R, DIM = 1)
+            DO COL = 1, SIZE(R, DIM = 2)
+                DO ROW = 1, SIZE(R, DIM = 1)
                     IF (R(ROW, COL).LT.0) THEN 
                         V(ROW,COL) = -V(ROW, COL)
                         R(ROW, COL) = -R(ROW, COL) ! REFLECT POSITION ABOUT 0
@@ -46,9 +46,9 @@ MODULE MD
         RETURN
     END
 
-    SUBROUTINE DUMP(R, T, I)
+    SUBROUTINE DUMP(R, V, A, T, I)
         CHARACTER(LEN = 20) :: FILENAME
-        REAL, DIMENSION(N, D) :: R
+        REAL, DIMENSION(N, D) :: R, V, A
         REAL :: T
         INTEGER :: I, J
 
@@ -65,6 +65,30 @@ MODULE MD
         END DO
 
         CLOSE(1)
+
+        WRITE(FILENAME, '(A, I0, A)') 'dump/vel', I, '.txt'
+
+        OPEN(2, FILE = FILENAME, STATUS = 'REPLACE')
+
+        WRITE(2, '(I0)') N
+
+        WRITE(2, '(A, F8.3, A, I5)') 'TIME: ', T, ', STEP: ', I
+
+        DO J = 1, N
+            WRITE(2, '(A1, 6F12.6)') 'H', V(J,1), V(J,2), V(J,3)
+        END DO
+
+        WRITE(FILENAME, '(A, I0, A)') 'dump/acc', I, '.txt'
+
+        OPEN(3, FILE = FILENAME, STATUS = 'REPLACE')
+        WRITE(3, '(I0)') N
+
+        WRITE(3, '(A, F8.3, A, I5)') 'TIME: ', T, ', STEP: ', I
+
+        DO J = 1, N
+            WRITE(3, '(A1, 6F12.6)') 'H', A(J,1), A(J,2), A(J,3)
+        END DO
+
     END
 
     FUNCTION LJPOT(R, A) RESULT(LJP) ! SUM OF PAIRWISE POTENTIAL ENERGIES BETWEEN MOLECULE A AND EVERY OTHER MOLECULE IN SIMULATION
@@ -88,6 +112,8 @@ MODULE MD
 
         DO I = 1, N - 1 ! CALCULATE COMPONENT WISE DISTANCE VECTORS. EX: IF ATOM K HAS POSITION VECTOR (1, 2, 3) AND ATOM L HAS POSITION VECTOR (5, 4, 2) THEN THE RESULTING VECTOR IS (4, 2, -1). THIS VECTOR CAN THEN BE USED FOR EUCLIDEAN DISTANCE CALCULATION.
             DRV(I, :) = AR - NR(I, :)
+            ! MIN IMAGE CONVENTION
+            DRV(I, :) = DRV(I, :) - L * NINT(DRV(I, :) / L)
         END DO
 
         DO I = 1, N - 1 ! CALCULATE EUCLIDEAN DISTANCE FOR EACH ATOM (ASSUMING D = 3)
@@ -107,6 +133,9 @@ MODULE MD
         REAL, DIMENSION(N - 1) :: DR, DUDR ! DISTANCE (MAGNITUDE OF DRV), DERIVATIVE OF ENERGY WITH RESPECT TO DISTANCE
         REAL, DIMENSION(3) :: AR, DLJPS ! POSITION OF A, SUM OF GRADIENTS
         INTEGER :: A, NEW_ROW, I
+        REAL :: DUDRM
+
+        DUDRM = 8000.0 * M
 
         NEW_ROW = 1
 
@@ -121,6 +150,7 @@ MODULE MD
 
         DO I = 1, N - 1
             DRV(I, :) = AR - NR(I, :)
+            DRV(I, :) = DRV(I, :) - L * NINT(DRV(I, :) / L)
         END DO
 
         DO I = 1, N - 1 !
@@ -128,6 +158,7 @@ MODULE MD
         END DO
 
         DUDR = 24 * EPS * (2*(SIG**12/DR**13)-(SIG**6/DR**7)) ! CALCULATE DERIVATIVES
+        DUDR = MIN(DUDR, DUDRM) ! AVOID PHYSICALLY UNREASONABLE ACCELERATION
 
         DO I = 1, N - 1 ! CALCULATE UNIT VECTORS
             UR(I, :) = DRV(I, :) / DR(I)
