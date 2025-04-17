@@ -4,15 +4,23 @@ PROGRAM MAIN
     IMPLICIT NONE
     REAL, DIMENSION(N, D) :: R, V, A ! POSITION AND VELOCITY VECTORS
     INTEGER :: I, J
-    REAL :: TPOTE = 0
 
-    CALL RANDOM_NUMBER(R)
-    CALL RANDOM_NUMBER(V)
+    ! CALL RANDOM_NUMBER(R)
+    ! CALL RANDOM_NUMBER(V)
 
-    R = R * L
-    V = (V * 200) - 100
+    ! R = R * L
+    ! V = (V * 100) - 50
+
+    R(2, :) = 25.
+    R(1, 1) = 26.
+    R(1, 2:3) = 25.
+
+    V(1, 1) = 0.
+    V(1, 2:3) = 0.
+    V(2, 1) = 0.
+    V(2, 2:3) = 0.
     
-    DO I = 1, 50
+    DO I = 1, 1000
         CALL UPDATEV(R, V, A)
         CALL UPDATE(R, V)
         PRINT '(A, F10.6)', "POSITION AT T = ", DT * I
@@ -27,13 +35,7 @@ PROGRAM MAIN
         DO J = 1, N
             PRINT *, "N = ", J, A(J, :)
         END DO
-        PRINT '(A, F10.6)', "TOTAL POTENTIAL ENERGY AT T = ", DT * I
-        DO J = 1, N
-            TPOTE = TPOTE + LJPOT(R, J)
-        END DO
-        PRINT *, TPOTE
-        CALL DUMP(R, DT * I, I)
+        CALL DUMP(R, V, A, DT * I, I)
     END DO
-    
 
 END PROGRAM MAIN
