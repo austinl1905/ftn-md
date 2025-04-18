@@ -5,20 +5,11 @@ PROGRAM MAIN
     REAL, DIMENSION(N, D) :: R, V, A ! POSITION AND VELOCITY VECTORS
     INTEGER :: I, J
 
-    ! CALL RANDOM_NUMBER(R)
-    ! CALL RANDOM_NUMBER(V)
+    CALL RANDOM_NUMBER(R)
+    CALL RANDOM_NUMBER(V)
 
-    ! R = R * L
-    ! V = (V * 100) - 50
-
-    R(2, :) = 25.
-    R(1, 1) = 26.
-    R(1, 2:3) = 25.
-
-    V(1, 1) = 0.
-    V(1, 2:3) = 0.
-    V(2, 1) = 0.
-    V(2, 2:3) = 0.
+    R = R * L
+    V = (V * 100) - 50
     
     DO I = 1, 1000
         CALL UPDATEV(R, V, A)

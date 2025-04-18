@@ -135,7 +135,7 @@ MODULE MD
         INTEGER :: A, NEW_ROW, I
         REAL :: DUDRM
 
-        DUDRM = 8000.0 * M
+        DUDRM = 16000.0 * M
 
         NEW_ROW = 1
 
