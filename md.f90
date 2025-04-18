@@ -47,7 +47,7 @@ MODULE MD
 
         AN = F / M
 
-        V = V + (0.5 * (A + AN) * DT)
+        V = V + (0.5 * (A + AN) * DT) ! UPDATE VELOCITY
 
         A = AN
 
