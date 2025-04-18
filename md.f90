@@ -4,9 +4,9 @@ MODULE MD
 
     CONTAINS
 
-    SUBROUTINE UPDATE(R, V)
+    SUBROUTINE UPDATE(R, V) ! I DONT USE THIS
         REAL, DIMENSION(N, D) :: R, V
-        R = R + V * DT
+        R = R + V * DT ! EULER METHOD (THIS IS WHAT HAPPENS WHEN A HIGH SCHOOLER WITH VERY LIMITED KNOWLEDGE OF CALC TRIES TO DO MD)
         IF (BC.EQ.1) THEN
             R = MODULO(R + V * DT, L)
         ELSE 
@@ -15,17 +15,43 @@ MODULE MD
         RETURN
     END
 
-    SUBROUTINE UPDATEV(R, V, A)
+    SUBROUTINE UPDATE_V(R, V, A) ! I DONT USE THIS EITHER
         REAL, DIMENSION(N, D) :: R, V, F, A
         INTEGER :: I
 
-        DO I = 1, N
+        DO I = 1, N ! FORCE IS SUPPOSED TO BE THE NEGATIVE OF THE GRADIENT BUT... IT ONLY WORKS THIS WAY FOR SOME REASON.
             F(I, :) = DLJPOT(R, I)
         END DO
 
         A = F / M
 
         V = V + A * DT
+        RETURN
+    END
+
+    SUBROUTINE VEL_VERLET(R, V, A) ! EULER BUT BETTER
+        REAL, DIMENSION(N, D) :: R, V, F, A, AN
+        INTEGER :: I
+
+        R = R + (V * DT) + (0.5 * A * DT**2) ! UPDATE POSITION
+
+        IF (BC.EQ.1) THEN
+            R = MODULO(R, L)
+        ELSE 
+            CALL REFLECT(R, V)
+        END IF
+
+        DO I = 1, N
+            F(I, :) = DLJPOT(R, I)
+        END DO
+
+        AN = F / M
+
+        V = V + (0.5 * (A + AN) * DT)
+
+        A = AN
+
+        RETURN
     END
 
     SUBROUTINE REFLECT(R, V)
@@ -133,9 +159,10 @@ MODULE MD
         REAL, DIMENSION(N - 1) :: DR, DUDR ! DISTANCE (MAGNITUDE OF DRV), DERIVATIVE OF ENERGY WITH RESPECT TO DISTANCE
         REAL, DIMENSION(3) :: AR, DLJPS ! POSITION OF A, SUM OF GRADIENTS
         INTEGER :: A, NEW_ROW, I
-        REAL :: DUDRM
+        REAL :: DUDRM, RC
 
         DUDRM = 16000.0 * M
+        RC = 2.5
 
         NEW_ROW = 1
 
@@ -157,7 +184,15 @@ MODULE MD
             DR(I) = SQRT(SUM(DRV(I, :)**2))
         END DO
 
-        DUDR = 24 * EPS * (2*(SIG**12/DR**13)-(SIG**6/DR**7)) ! CALCULATE DERIVATIVES
+        DO I = 1, N - 1
+            IF (DR(I).LE.2.5) THEN ! SHIFTED FORCE
+                DUDR(I) = 24 * EPS * ((2*(SIG**12/DR(I)**13)-(SIG**6/DR(I)**7))-(2*(SIG**12/RC**13)-(SIG**6/RC**7)))
+            ELSE
+                DUDR(I) = 0 ! FORCE IS EFFECTIVELY ZERO AT LARGE DISTANCES
+            END IF
+        END DO
+
+        ! DUDR = 24 * EPS * (2*(SIG**12/DR**13)-(SIG**6/DR**7)) ! CALCULATE DERIVATIVES
         DUDR = MIN(DUDR, DUDRM) ! AVOID PHYSICALLY UNREASONABLE ACCELERATION
 
         DO I = 1, N - 1 ! CALCULATE UNIT VECTORS
