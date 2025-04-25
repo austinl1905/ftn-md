@@ -72,13 +72,14 @@ MODULE MD
         RETURN
     END
 
-    SUBROUTINE DUMP(R, V, A, T, I)
+    SUBROUTINE DUMP(R, V, A, PE, T, I)
         CHARACTER(LEN = 20) :: FILENAME
         REAL, DIMENSION(N, D) :: R, V, A
-        REAL :: T
+        REAL :: T, PE
         INTEGER :: I, J
 
         WRITE(FILENAME, '(A, I0, A)') 'dump/data', I, '.xyz'
+        PRINT *, FILENAME
 
         OPEN(1, FILE=FILENAME, STATUS = 'REPLACE')
 
@@ -115,6 +116,12 @@ MODULE MD
             WRITE(3, '(A1, 6F12.6)') 'H', A(J,1), A(J,2), A(J,3)
         END DO
 
+        WRITE(FILENAME, '(A, I0, A)') 'dump/pe', I, '.txt'
+
+        OPEN(4, FILE = FILENAME, STATUS = 'REPLACE')
+        WRITE(4, '(I0)') N
+        WRITE(4, '(A, F8.3, A, I5)') 'TIME: ', T, ', STEP: ', I
+        WRITE(4, '(6F12.6)') PE
     END
 
     FUNCTION LJPOT(R, A) RESULT(LJP) ! SUM OF PAIRWISE POTENTIAL ENERGIES BETWEEN MOLECULE A AND EVERY OTHER MOLECULE IN SIMULATION

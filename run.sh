@@ -18,4 +18,8 @@ for file in $(awk 'FNR==2 {print $NF, FILENAME}' dump/acc*.txt | sort -n | awk '
 do
     cat "$file" >> accs.txt
 done
+for file in $(awk 'FNR==2 {print $NF, FILENAME}' dump/pe*.txt | sort -n | awk '{print $2}')
+do 
+    cat "$file" >> pes.txt
+done
 echo TRAJECTORY FILE SUCCESSFULLY CREATED
