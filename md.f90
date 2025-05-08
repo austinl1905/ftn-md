@@ -15,11 +15,11 @@ MODULE MD
         RETURN
     END
 
-    SUBROUTINE UPDATE_V(R, V, A) ! I DONT USE THIS EITHER
+    SUBROUTINE UPDATE_V(R, V, A) ! I DONT USE THIS EITHER. ITS STILL HERE FOR HISTORY
         REAL, DIMENSION(N, D) :: R, V, F, A
         INTEGER :: I
 
-        DO I = 1, N ! FORCE IS SUPPOSED TO BE THE NEGATIVE OF THE GRADIENT BUT... IT ONLY WORKS THIS WAY FOR SOME REASON.
+        DO I = 1, N
             F(I, :) = DLJPOT(R, I)
         END DO
 
@@ -42,7 +42,7 @@ MODULE MD
         END IF
 
         DO I = 1, N
-            F(I, :) = DLJPOT(R, I)
+            F(I, :) = DLJPOT(R, I) ! FORCE IS SUPPOSED TO BE THE NEGATIVE OF THE GRADIENT. BUT I ALREADY ACCOUNTED FOR THAT WHEN CALCULATING THE DERIVATIVE SO THIS IS FINE.
         END DO
 
         AN = F / M
@@ -51,6 +51,37 @@ MODULE MD
 
         A = AN
 
+        RETURN
+    END
+
+    ! SIMPLE VELOCITY RESCALING. WILL FIGURE OUT A BETTER THERMOSTAT LATER
+    SUBROUTINE RESCALE_V(V)
+        REAL :: LAMB, CURRENT_T, KE, AVKE
+        REAL, DIMENSION(N, D), INTENT(INOUT) :: V
+        INTEGER :: I
+
+        CURRENT_T = GET_T(V)
+
+        LAMB = SQRT(T/CURRENT_T)
+        V = V * LAMB
+        RETURN
+    END
+
+    REAL FUNCTION GET_T(V) ! HELPER FUNCTION BECAUSE I WANT T IN MY DUMP FILES TOO
+        REAL :: KE, AVKE, LAMB
+        REAL, DIMENSION(N, D) :: V
+        INTEGER :: I
+        
+        KE = 0
+
+        ! IM SORRY BUT I CAN NEVER GET USED TO FORTRAN ARRAY OPERATIONS
+        DO I = 1, N
+            KE = KE + SUM(V(I,:)**2) * M
+        END DO
+
+        KE = KE * 0.5
+        AVKE = KE / N
+        GET_T = (2.0/3.0) * AVKE/KB
         RETURN
     END
 
@@ -72,13 +103,14 @@ MODULE MD
         RETURN
     END
 
-    SUBROUTINE DUMP(R, V, A, T, I)
+    SUBROUTINE DUMP(R, V, A, PE, CURRENT_T, T, I)
         CHARACTER(LEN = 20) :: FILENAME
         REAL, DIMENSION(N, D) :: R, V, A
-        REAL :: T
+        REAL :: T, PE, CURRENT_T
         INTEGER :: I, J
 
         WRITE(FILENAME, '(A, I0, A)') 'dump/data', I, '.xyz'
+        PRINT *, FILENAME
 
         OPEN(1, FILE=FILENAME, STATUS = 'REPLACE')
 
@@ -115,14 +147,26 @@ MODULE MD
             WRITE(3, '(A1, 6F12.6)') 'H', A(J,1), A(J,2), A(J,3)
         END DO
 
+        WRITE(FILENAME, '(A, I0, A)') 'dump/pe', I, '.txt'
+
+        OPEN(4, FILE = FILENAME, STATUS = 'REPLACE')
+        WRITE(4, '(I0)') N
+        WRITE(4, '(A, F8.3, A, I5)') 'TIME: ', T, ', STEP: ', I
+        WRITE(4, '(6F12.6)') PE
+
+        WRITE(FILENAME, '(A, I0, A)') 'dump/temp', I, '.txt'
+
+        OPEN(5, FILE = FILENAME, STATUS = 'REPLACE')
+        WRITE(5, '(I0)') N
+        WRITE(5, '(A, F8.3, A, I5)') 'TIME: ', T, ', STEP: ', I
+        WRITE(5, '(6F12.6)') CURRENT_T
     END
 
-    FUNCTION LJPOT(R, A) RESULT(LJP) ! SUM OF PAIRWISE POTENTIAL ENERGIES BETWEEN MOLECULE A AND EVERY OTHER MOLECULE IN SIMULATION
+    REAL FUNCTION LJPOT(R, A) ! SUM OF PAIRWISE POTENTIAL ENERGIES BETWEEN MOLECULE A AND EVERY OTHER MOLECULE IN SIMULATION
         REAL, DIMENSION(N, D) :: R ! POSITIONS
         REAL, DIMENSION(N - 1, D) :: NR, DRV ! POSITION VECTOR (WITHOUT ITH ATOM), DISPLACEMENT
         REAL, DIMENSION(N - 1) :: DR, LJPS ! DISTANCE BETWEEN NTH ATOM AND ITH ATOM
         REAL, DIMENSION(3) :: AR
-        REAL :: LJP
         INTEGER :: A, NEW_ROW, I
 
         NEW_ROW = 1
@@ -148,7 +192,7 @@ MODULE MD
 
         LJPS = 4.00 * EPS * ((SIG/DR)**12-(SIG/DR)**6)
 
-        LJP = SUM(LJPS) ! POTENTIAL ENERGY IS A SCALAR QUANTITY
+        LJPOT = SUM(LJPS) ! POTENTIAL ENERGY IS A SCALAR QUANTITY
 
     RETURN
     END

@@ -4,7 +4,7 @@ PROGRAM MAIN
     IMPLICIT NONE
     REAL, DIMENSION(N, D) :: R, V, A ! POSITION, VELOCITY, AND ACCELERATION VECTORS
     INTEGER :: I, J, START, FINISH, RATE
-    REAL :: TIME_ELAPSED
+    REAL :: TIME_ELAPSED, TOTAL_PE, CURRENT_T
 
     CALL SYSTEM_CLOCK(COUNT_RATE=RATE)
     CALL SYSTEM_CLOCK(START)
@@ -15,25 +15,23 @@ PROGRAM MAIN
     R = R * L
     V = (V * 100) - 50
 
+    TOTAL_PE = 0
+
     DO I = 1, N ! INITIALIZE ACCELERATION
         A(I, :) = DLJPOT(R, I) / M
     END DO
     
     DO I = 1, 1000
-        CALL VEL_VERLET(R, V, A)
-        PRINT '(A, F10.6)', "POSITION AT T = ", DT * I
+        CALL VEL_VERLET(R, V, A) ! INTEGRATE BEFORE USING THERMOSTAT
+        CALL RESCALE_V(V)
+        PRINT '(A, F10.6, A, I0)', "T = ", DT * I
+        PRINT '(A, I0)', "STEP = ", I
+
         DO J = 1, N
-            PRINT *, "N = ", J, R(J, :)
+            TOTAL_PE = TOTAL_PE + LJPOT(R, J)
         END DO
-        PRINT '(A, F10.6)', "VELOCITY AT T = ", DT * I
-        DO J = 1, N
-            PRINT *, "N = ", J, V(J, :)
-        END DO
-        PRINT '(A, F10.6)', "ACCELERATION AT T = ", DT * I
-        DO J = 1, N
-            PRINT *, "N = ", J, A(J, :)
-        END DO
-        CALL DUMP(R, V, A, DT * I, I)
+        CALL DUMP(R, V, A, TOTAL_PE, GET_T(V), DT * I, I)
+        TOTAL_PE = 0
     END DO
 
     CALL SYSTEM_CLOCK(FINISH)
