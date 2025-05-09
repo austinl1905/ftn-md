@@ -15,22 +15,26 @@ MODULE MD
         RETURN
     END
 
-    SUBROUTINE UPDATE_V(R, V, A) ! I DONT USE THIS EITHER. ITS STILL HERE FOR HISTORY
+    SUBROUTINE UPDATE_V(R, V, A, M) ! I DONT USE THIS EITHER. ITS STILL HERE FOR HISTORY
         REAL(KIND=8), DIMENSION(N, D) :: R, V, F, A
+        REAL(KIND=8), DIMENSION(N) :: M
         INTEGER :: I
 
         DO I = 1, N
-            F(I, :) = DLJPOT(R, I)
+            F(I, :) = DLJPOT(R, I, M)
         END DO
 
-        A = F / M
+        DO I = 1, N
+            A(I, :) = F(I, :) / M(I)
+        END DO
 
         V = V + A * DT
         RETURN
     END
 
-    SUBROUTINE VEL_VERLET(R, V, A) ! EULER BUT BETTER
+    SUBROUTINE VEL_VERLET(R, V, A, M) ! EULER BUT BETTER
         REAL(KIND=8), DIMENSION(N, D) :: R, V, F, A, AN
+        REAL(KIND=8), DIMENSION(N) :: M
         INTEGER :: I
 
         R = R + (V * DT) + (0.5 * A * DT**2) ! UPDATE POSITION
@@ -42,10 +46,14 @@ MODULE MD
         END IF
 
         DO I = 1, N
-            F(I, :) = DLJPOT(R, I) ! FORCE IS SUPPOSED TO BE THE NEGATIVE OF THE GRADIENT. BUT I ALREADY ACCOUNTED FOR THAT WHEN CALCULATING THE DERIVATIVE SO THIS IS FINE.
+            F(I, :) = DLJPOT(R, I, M) ! FORCE IS SUPPOSED TO BE THE NEGATIVE OF THE GRADIENT. BUT I ALREADY ACCOUNTED FOR THAT WHEN CALCULATING THE DERIVATIVE SO THIS IS FINE.
         END DO
 
-        AN = F / M
+        DO I = 1, N
+            AN(I, :) = F(I, :) / M(I)
+        END DO
+
+        ! AN = F / M
 
         V = V + (0.5 * (A + AN) * DT) ! UPDATE VELOCITY
 
@@ -55,22 +63,24 @@ MODULE MD
     END
 
     ! SIMPLE VELOCITY RESCALING. WILL FIGURE OUT A BETTER THERMOSTAT LATER
-    SUBROUTINE RESCALE_V(V)
+    SUBROUTINE RESCALE_V(V, M)
         REAL(KIND=8) :: LAMB, CURRENT_T
+        REAL(KIND=8), DIMENSION(N) :: M
         REAL(KIND=8), DIMENSION(N, D), INTENT(INOUT) :: V
         INTEGER :: I
 
-        CURRENT_T = GET_T(V)
+        CURRENT_T = GET_T(V, M)
         LAMB = SQRT(T/CURRENT_T)
         V = V * LAMB
         RETURN
     END
 
-    SUBROUTINE ANDERSEN_THERMOSTAT(V) ! V RESCALE BUT BETTER
+    SUBROUTINE ANDERSEN_THERMOSTAT(V, M) ! V RESCALE BUT BETTER
         REAL(KIND=8), DIMENSION(N, D) :: V
+        REAL(KIND=8), DIMENSION(N) :: M
         REAL(KIND=8) :: CURRENT_T, VEL_DW
 
-        CURRENT_T = GET_T(V)
+        CURRENT_T = GET_T(V, M)
 
         RETURN
     END
@@ -83,16 +93,17 @@ MODULE MD
         RETURN
     END FUNCTION GAUSSIAN
 
-    REAL(KIND=8) FUNCTION GET_T(V) ! HELPER FUNCTION BECAUSE I WANT T IN MY DUMP FILES TOO
+    REAL(KIND=8) FUNCTION GET_T(V, M) ! HELPER FUNCTION BECAUSE I WANT T IN MY DUMP FILES TOO
         REAL(KIND=8) :: KE, AVKE, LAMB
         REAL(KIND=8), DIMENSION(N, D) :: V
+        REAL(KIND=8), DIMENSION(N) :: M
         INTEGER :: I
         
         KE = 0
 
         ! IM SORRY BUT I CAN NEVER GET USED TO FORTRAN ARRAY OPERATIONS
         DO I = 1, N
-            KE = KE + SUM(V(I,:)**2) * M
+            KE = KE + SUM(V(I,:)**2) * M(I)
         END DO
 
         KE = KE * 0.5
@@ -119,9 +130,10 @@ MODULE MD
         RETURN
     END
 
-    SUBROUTINE DUMP(R, V, A, PE, CURRENT_T, T, I)
+    SUBROUTINE DUMP(MOL_NAMES, R, V, A, PE, CURRENT_T, T, I)
         CHARACTER(LEN = 20) :: FILENAME
         REAL(KIND=8), DIMENSION(N, D) :: R, V, A
+        CHARACTER(LEN=2), DIMENSION(N) :: MOL_NAMES
         REAL(KIND=8) :: T, PE, CURRENT_T
         INTEGER :: I, J
 
@@ -134,7 +146,7 @@ MODULE MD
         WRITE(1, '(A, F8.3, A, I5)') 'TIME: ', T, ', STEP: ', I
         
         DO J = 1, N
-            WRITE(1, '(A1, 3F12.6)') 'H', R(J,1), R(J,2), R(J,3)
+            WRITE(1, '(A1, 3F12.6)') MOL_NAMES(J), R(J,1), R(J,2), R(J,3)
         END DO
 
         CLOSE(1)
@@ -148,7 +160,7 @@ MODULE MD
         WRITE(2, '(A, F8.3, A, I5)') 'TIME: ', T, ', STEP: ', I
 
         DO J = 1, N
-            WRITE(2, '(A1, 6F12.6)') 'H', V(J,1), V(J,2), V(J,3)
+            WRITE(2, '(A1, 6F12.6)') MOL_NAMES(J), V(J,1), V(J,2), V(J,3)
         END DO
 
         WRITE(FILENAME, '(A, I0, A)') 'dump/acc', I, '.txt'
@@ -159,7 +171,7 @@ MODULE MD
         WRITE(3, '(A, F8.3, A, I5)') 'TIME: ', T, ', STEP: ', I
 
         DO J = 1, N
-            WRITE(3, '(A1, 6F12.6)') 'H', A(J,1), A(J,2), A(J,3)
+            WRITE(3, '(A1, 6F12.6)') MOL_NAMES(J), A(J,1), A(J,2), A(J,3)
         END DO
 
         WRITE(FILENAME, '(A, I0, A)') 'dump/pe', I, '.txt'
@@ -212,15 +224,17 @@ MODULE MD
     RETURN
     END
 
-    FUNCTION DLJPOT(R, A) RESULT (DLJPS)
+    FUNCTION DLJPOT(R, A, M) RESULT (DLJPS)
         REAL(KIND=8), DIMENSION(N, D) :: R ! POSITIONS
+        REAL(KIND=8), DIMENSION(N) :: M
         REAL(KIND=8), DIMENSION(N - 1, D) :: NR, DRV, UR, DLJP ! POSITIONS (EXCLUDING A), DISPLACEMENT (A-I), UNIT VECTORS, POTENTIAL GRADIENT
         REAL(KIND=8), DIMENSION(N - 1) :: DR, DUDR ! DISTANCE (MAGNITUDE OF DRV), DERIVATIVE OF ENERGY WITH RESPECT TO DISTANCE
         REAL(KIND=8), DIMENSION(3) :: AR, DLJPS ! POSITION OF A, SUM OF GRADIENTS
         INTEGER :: A, NEW_ROW, I
-        REAL(KIND=8) :: DUDRM, RC
+        REAL(KIND=8) :: RC, DUDRM
 
-        DUDRM = 16000.0 * M
+        ! DUDRM = 16000.0 * SUM(M) / SIZE(M)
+        DUDRM = 2**20
         RC = 2.5
 
         NEW_ROW = 1
