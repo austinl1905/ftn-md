@@ -109,7 +109,6 @@ MODULE MD
         INTEGER :: I, J
 
         WRITE(FILENAME, '(A, I0, A)') 'dump/data', I, '.xyz'
-        PRINT *, FILENAME
 
         OPEN(1, FILE=FILENAME, STATUS = 'REPLACE')
 
