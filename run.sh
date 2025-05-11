@@ -1,15 +1,16 @@
 #!/bin/bash
+echo THE FOLLOWING DEPENDENCIES ARE REQUIRED: VMD, GFORTRAN, BC
 read -p "ENTER NUMBER OF MOLECULES: " N 
-read -p "ENTER UPPER BOUND FOR PERIODIC BOX (ANGSTROMS): " L
+read -p "ENTER UPPER BOUND FOR PERIODIC BOX AS DECIMAL VALUE (ANGSTROMS): " L
 read -p "ENTER TARGET TEMPERATURE (KELVIN): " T
-if [ $T -lt 0 ] || [ $N -lt 0 ] || [ $L -lt 0 ]; then
+if [ $T -lt 0 ] || [ $N -lt 0 ] || (( $(echo "$L < 0.0" |bc -l) )); then
     echo INVALID
     exit 1
 fi
 sed -i "3s/.*/    INTEGER, PARAMETER :: N = ${N}/" parameters.f90
 sed -i "8s/.*/    REAL(KIND=8), PARAMETER :: L = ${L}/" parameters.f90
 sed -i "11s/.*/    REAL(KIND=8), PARAMETER :: T = ${T}/" parameters.f90
-echo THE FOLLOWING DEPENDENCIES ARE REQUIRED: VMD, GFORTRAN
+sed -i "3s/.*/pbc set {${L} ${L} ${L} 90.0 90.0 90.0} -all/" mol.tcl
 gfortran main.f90 parameters.f90 md.f90 -o main
 if [ $? -eq 0 ]; then
     echo SUCCESSFULLY COMPILED
@@ -40,5 +41,4 @@ else
     echo ERROR CREATING TRAJECTORY FILE
     exit 1
 fi
-#vmd -e mol.tcl
-vmd -xyz trajectory.xyz
+vmd -e mol.tcl

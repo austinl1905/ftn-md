@@ -26,8 +26,8 @@ PROGRAM MAIN
         PRINT *, "SELECT NUMBER OF MOLECULES FOR THIS TYPE:"
         READ(*, *, IOSTAT=STAT) NUM_MOLS
 
-        IF (NUM_MOLS.GT.N) THEN
-            NUM_MOLS = N
+        IF (NUM_MOLS.GT.(N - SUM(NUM_EACH))) THEN
+            NUM_MOLS = N - SUM(NUM_EACH)
         END IF
 
         NUM_EACH(TYPE) = NUM_MOLS
