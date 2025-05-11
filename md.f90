@@ -32,7 +32,7 @@ MODULE MD
         RETURN
     END
 
-    SUBROUTINE VEL_VERLET(R, V, A, M) ! EULER BUT BETTER
+    SUBROUTINE VEL_VERLET(R, V, A, M)
         REAL(KIND=8), DIMENSION(N, D) :: R, V, F, A, AN
         REAL(KIND=8), DIMENSION(N) :: M
         INTEGER :: I
@@ -57,30 +57,30 @@ MODULE MD
 
         V = V + (0.5 * (A + AN) * DT) ! UPDATE VELOCITY
 
+        CALL ANDERSEN_THERMOSTAT(V, M) ! THERMOSTAT DOES NOT INFLUENCE FORCE CALCULATIONS
+
         A = AN
 
         RETURN
     END
 
-    ! SIMPLE VELOCITY RESCALING. WILL FIGURE OUT A BETTER THERMOSTAT LATER
-    SUBROUTINE RESCALE_V(V, M)
-        REAL(KIND=8) :: LAMB, CURRENT_T
-        REAL(KIND=8), DIMENSION(N) :: M
-        REAL(KIND=8), DIMENSION(N, D), INTENT(INOUT) :: V
-        INTEGER :: I
-
-        CURRENT_T = GET_T(V, M)
-        LAMB = SQRT(T/CURRENT_T)
-        V = V * LAMB
-        RETURN
-    END
-
-    SUBROUTINE ANDERSEN_THERMOSTAT(V, M) ! V RESCALE BUT BETTER
+    SUBROUTINE ANDERSEN_THERMOSTAT(V, M)
         REAL(KIND=8), DIMENSION(N, D) :: V
         REAL(KIND=8), DIMENSION(N) :: M
-        REAL(KIND=8) :: CURRENT_T, VEL_DW
+        REAL(KIND=8) :: STDEV, P_COLL, RAND
+        INTEGER :: I, J
 
-        CURRENT_T = GET_T(V, M)
+        P_COLL = 0.5
+
+        DO I = 1, N
+            CALL RANDOM_NUMBER(RAND)
+            IF (RAND.LT.(P_COLL*DT)) THEN
+                STDEV = SQRT(KB*T/M(I))
+                DO J = 1, D
+                    V(I, J) = GAUSSIAN() * STDEV
+                END DO
+            END IF
+        END DO
 
         RETURN
     END
@@ -92,6 +92,18 @@ MODULE MD
             GAUSSIAN = SQRT(-2.0 * LOG(R1)) * COS(2.0 * PI * R2)
         RETURN
     END FUNCTION GAUSSIAN
+
+    ! SIMPLE VELOCITY RESCALING. WILL FIGURE OUT A BETTER THERMOSTAT LATER
+    SUBROUTINE RESCALE_V(V, M)
+        REAL(KIND=8) :: LAMB, CURRENT_T
+        REAL(KIND=8), DIMENSION(N) :: M
+        REAL(KIND=8), DIMENSION(N, D):: V
+
+        CURRENT_T = GET_T(V, M)
+        LAMB = SQRT(T/CURRENT_T)
+        V = V * LAMB
+        RETURN
+    END
 
     REAL(KIND=8) FUNCTION GET_T(V, M) ! HELPER FUNCTION BECAUSE I WANT T IN MY DUMP FILES TOO
         REAL(KIND=8) :: KE, AVKE, LAMB
@@ -146,7 +158,7 @@ MODULE MD
         WRITE(1, '(A, F8.3, A, I5)') 'TIME: ', T, ', STEP: ', I
         
         DO J = 1, N
-            WRITE(1, '(A1, 3F12.6)') MOL_NAMES(J), R(J,1), R(J,2), R(J,3)
+            WRITE(1, '(A2, 3F12.6)') MOL_NAMES(J), R(J,1), R(J,2), R(J,3)
         END DO
 
         CLOSE(1)
@@ -160,7 +172,7 @@ MODULE MD
         WRITE(2, '(A, F8.3, A, I5)') 'TIME: ', T, ', STEP: ', I
 
         DO J = 1, N
-            WRITE(2, '(A1, 6F12.6)') MOL_NAMES(J), V(J,1), V(J,2), V(J,3)
+            WRITE(2, '(A2, 6F12.6)') MOL_NAMES(J), V(J,1), V(J,2), V(J,3)
         END DO
 
         WRITE(FILENAME, '(A, I0, A)') 'dump/acc', I, '.txt'
@@ -171,7 +183,7 @@ MODULE MD
         WRITE(3, '(A, F8.3, A, I5)') 'TIME: ', T, ', STEP: ', I
 
         DO J = 1, N
-            WRITE(3, '(A1, 6F12.6)') MOL_NAMES(J), A(J,1), A(J,2), A(J,3)
+            WRITE(3, '(A2, 6F12.6)') MOL_NAMES(J), A(J,1), A(J,2), A(J,3)
         END DO
 
         WRITE(FILENAME, '(A, I0, A)') 'dump/pe', I, '.txt'
@@ -250,7 +262,9 @@ MODULE MD
 
         DO I = 1, N - 1
             DRV(I, :) = AR - NR(I, :)
-            DRV(I, :) = DRV(I, :) - L * NINT(DRV(I, :) / L)
+            IF (BC.EQ.1) THEN
+                DRV(I, :) = DRV(I, :) - L * NINT(DRV(I, :) / L)
+            END IF
         END DO
 
         DO I = 1, N - 1 !
