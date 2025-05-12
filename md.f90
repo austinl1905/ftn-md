@@ -32,6 +32,41 @@ MODULE MD
         RETURN
     END
 
+    SUBROUTINE INIT_V(V, M)
+        REAL(KIND=8), DIMENSION(N) :: M
+        REAL(KIND=8), DIMENSION(N, D) :: V
+        REAL(KIND=8), DIMENSION(D) :: VCM ! CENTER OF MASS
+        REAL(KIND=8) :: KE, STDEV
+        INTEGER :: I, J
+
+        KE = 0.0
+        VCM = 0.0
+
+        DO I = 1, N
+            STDEV = SQRT(KB * T / M(I))
+            DO J = 1, D
+                CALL RANDOM_NUMBER(V(I,J))
+                V(I,J) = STDEV * GAUSSIAN() ! SAMPLE VELOCITY FROM GAUSSIAN DISTRIBUTION
+                VCM(D) = VCM(D) + M(I) * V(I,J) ! TO ENSURE MOMENTUM CONSERVATION
+                KE = KE + 0.5 * M(I) * V(I, J)**2
+            END DO
+        END DO
+
+        VCM = VCM / SUM(M) ! CENTER OF MASS VELOCITY IS WEIGHTED AVERAGE VELOCITY
+
+        IF (BC.EQ.1) THEN
+            DO I = 1, N
+                DO J = 1, D
+                    V(I, J) = V(I, J) - VCM(J) ! CORRECT FOR CENTER OF MASS VELOCITY. DONT ASK ME HOW IT WORKS. BECAUSE I DONT EITHER
+                END DO
+            END DO
+        END IF
+
+        V = V * SQRT(3 * N * KB * T / (2.0 * KE)) ! SCALE VELOCITY TO TEMPERATURE
+
+        RETURN
+    END
+
     SUBROUTINE VEL_VERLET(R, V, A, M)
         REAL(KIND=8), DIMENSION(N, D) :: R, V, F, A, AN
         REAL(KIND=8), DIMENSION(N) :: M
@@ -51,6 +86,7 @@ MODULE MD
 
         DO I = 1, N
             AN(I, :) = F(I, :) / M(I)
+            AN(I, :) = AN(I, :)
         END DO
 
         ! AN = F / M
@@ -262,7 +298,7 @@ MODULE MD
 
         DO I = 1, N - 1
             DRV(I, :) = AR - NR(I, :)
-            IF (BC.EQ.1) THEN
+            IF (BC.EQ.1) THEN ! ENABLE MIN IMAGE CONVENTION IF PBC IS ENABLED
                 DRV(I, :) = DRV(I, :) - L * NINT(DRV(I, :) / L)
             END IF
         END DO

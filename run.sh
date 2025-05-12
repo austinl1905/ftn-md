@@ -2,8 +2,8 @@
 echo THE FOLLOWING DEPENDENCIES ARE REQUIRED: VMD, GFORTRAN, BC
 read -p "ENTER NUMBER OF MOLECULES: " N 
 read -p "ENTER UPPER BOUND FOR PERIODIC BOX AS DECIMAL VALUE (ANGSTROMS): " L
-read -p "ENTER TARGET TEMPERATURE (KELVIN): " T
-if [ $T -lt 0 ] || [ $N -lt 0 ] || (( $(echo "$L < 0.0" |bc -l) )); then
+read -p "ENTER TARGET TEMPERATURE AS DECIMAL VALUE (KELVIN): " T
+if (( $(echo "$T < 0.0" |bc -l) )) || [ $N -lt 0 ] || (( $(echo "$L < 0.0" |bc -l) )); then
     echo INVALID
     exit 1
 fi
