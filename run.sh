@@ -11,7 +11,8 @@ sed -i "3s/.*/    INTEGER, PARAMETER :: N = ${N}/" parameters.f90
 sed -i "8s/.*/    REAL(KIND=8), PARAMETER :: L = ${L}/" parameters.f90
 sed -i "11s/.*/    REAL(KIND=8), PARAMETER :: T = ${T}/" parameters.f90
 sed -i "3s/.*/pbc set {${L} ${L} ${L} 90.0 90.0 90.0} -all/" mol.tcl
-gfortran main.f90 parameters.f90 md.f90 -o main
+gfortran main.f90 parameters.f90 md.f90 -o main 
+gfortran main.f90 parameters.f90 md.f90 -o main # I DONT KNOW WHY I HAVE TO DO THIS. N DOESNT UPDATE OTHERWISE I HATE IT
 if [ $? -eq 0 ]; then
     echo SUCCESSFULLY COMPILED
 else

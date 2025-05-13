@@ -15,13 +15,14 @@ MODULE MD
         RETURN
     END
 
-    SUBROUTINE UPDATE_V(R, V, A, M) ! I DONT USE THIS EITHER. ITS STILL HERE FOR HISTORY
+    SUBROUTINE UPDATE_V(R, V, A, KEYS) ! I DONT USE THIS EITHER. ITS STILL HERE FOR HISTORY
         REAL(KIND=8), DIMENSION(N, D) :: R, V, F, A
         REAL(KIND=8), DIMENSION(N) :: M
+        INTEGER, DIMENSION(N) :: KEYS
         INTEGER :: I
 
         DO I = 1, N
-            F(I, :) = DLJPOT(R, I, M)
+            F(I, :) = DLJPOT(R, I, KEYS)
         END DO
 
         DO I = 1, N
@@ -67,9 +68,10 @@ MODULE MD
         RETURN
     END
 
-    SUBROUTINE VEL_VERLET(R, V, A, M)
+    SUBROUTINE VEL_VERLET(R, V, A, M, KEYS)
         REAL(KIND=8), DIMENSION(N, D) :: R, V, F, A, AN
         REAL(KIND=8), DIMENSION(N) :: M
+        INTEGER, DIMENSION(N) :: KEYS
         INTEGER :: I
 
         R = R + (V * DT) + (0.5 * A * DT**2) ! UPDATE POSITION
@@ -81,7 +83,7 @@ MODULE MD
         END IF
 
         DO I = 1, N
-            F(I, :) = DLJPOT(R, I, M) ! FORCE IS SUPPOSED TO BE THE NEGATIVE OF THE GRADIENT. BUT I ALREADY ACCOUNTED FOR THAT WHEN CALCULATING THE DERIVATIVE SO THIS IS FINE.
+            F(I, :) = DLJPOT(R, I, KEYS) ! FORCE IS SUPPOSED TO BE THE NEGATIVE OF THE GRADIENT. BUT I ALREADY ACCOUNTED FOR THAT WHEN CALCULATING THE DERIVATIVE SO THIS IS FINE.
         END DO
 
         DO I = 1, N
@@ -243,6 +245,7 @@ MODULE MD
         REAL(KIND=8), DIMENSION(N - 1) :: DR, LJPS ! DISTANCE BETWEEN NTH ATOM AND ITH ATOM
         REAL(KIND=8), DIMENSION(3) :: AR
         INTEGER :: A, NEW_ROW, I
+        REAL(KIND=8) :: EPS, SIG
 
         NEW_ROW = 1
 
@@ -272,27 +275,28 @@ MODULE MD
     RETURN
     END
 
-    FUNCTION DLJPOT(R, A, M) RESULT (DLJPS)
+    FUNCTION DLJPOT(R, A, KEYS) RESULT (DLJPS)
         REAL(KIND=8), DIMENSION(N, D) :: R ! POSITIONS
-        REAL(KIND=8), DIMENSION(N) :: M
         REAL(KIND=8), DIMENSION(N - 1, D) :: NR, DRV, UR, DLJP ! POSITIONS (EXCLUDING A), DISPLACEMENT (A-I), UNIT VECTORS, POTENTIAL GRADIENT
         REAL(KIND=8), DIMENSION(N - 1) :: DR, DUDR ! DISTANCE (MAGNITUDE OF DRV), DERIVATIVE OF ENERGY WITH RESPECT TO DISTANCE
         REAL(KIND=8), DIMENSION(3) :: AR, DLJPS ! POSITION OF A, SUM OF GRADIENTS
-        INTEGER :: A, NEW_ROW, I
-        REAL(KIND=8) :: RC, DUDRM
+        INTEGER, DIMENSION(N) :: KEYS, NKEYS
+        INTEGER :: A, NEW_ROW, I, AK
+        REAL(KIND=8) :: DUDRM, EPS, SIG, RC
 
         ! DUDRM = 16000.0 * SUM(M) / SIZE(M)
         DUDRM = 2**20
-        RC = 2.5
 
         NEW_ROW = 1
 
         DO I = 1, N 
             IF (I.EQ.A) THEN
                 AR = R(I, :)
+                AK = KEYS(I)
                 CYCLE
             END IF
             NR(NEW_ROW, :) = R(I, :)
+            NKEYS(NEW_ROW) = KEYS(I)
             NEW_ROW = NEW_ROW + 1
         END DO
 
@@ -308,7 +312,11 @@ MODULE MD
         END DO
 
         DO I = 1, N - 1
-            IF (DR(I).LE.2.5) THEN ! SHIFTED FORCE
+            ! ADJUST PARAMETERS BASED ON PAIRING
+            EPS = (EPSS(NKEYS(I)) + EPSS(AK)) / 2.0
+            SIG = SQRT(SIGS(NKEYS(I)) * SIGS(AK))
+            RC = (CUTOFFS(NKEYS(I)) + CUTOFFS(AK)) / 2.0
+            IF (DR(I).LE.RC) THEN ! SHIFTED FORCE
                 DUDR(I) = 24 * EPS * ((2*(SIG**12/DR(I)**13)-(SIG**6/DR(I)**7))-(2*(SIG**12/RC**13)-(SIG**6/RC**7)))
             ELSE
                 DUDR(I) = 0 ! FORCE IS EFFECTIVELY ZERO AT LARGE DISTANCES
